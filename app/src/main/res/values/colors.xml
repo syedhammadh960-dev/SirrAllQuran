@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary Colors -->
+    <color name="primary_dark_green">#1F3A2E</color>
+    <color name="primary_green">#2D5444</color>
+    <color name="accent_teal">#4ECDC4</color>
+    <color name="accent_gold">#D4AF37</color>
+    <color name="accent_purple">#A569BD</color>
+
+    <!-- Background Colors -->
+    <color name="background_white">#FFFFFF</color>
+    <color name="background_light_gray">#F5F5F5</color>
+    <color name="background_dark">#1A1A1A</color>
+
+    <!-- Text Colors -->
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
+    <color name="text_white">#FFFFFF</color>
+    <color name="text_gold">#D4AF37</color>
+
+    <!-- Status Colors -->
+    <color name="success_green">#4CAF50</color>
+    <color name="warning_orange">#FF9800</color>
+    <color name="error_red">#F44336</color>
+
+    <!-- Card and Border Colors -->
+    <color name="card_background">#FFFFFF</color>
+    <color name="border_light">#E0E0E0</color>
+    <color name="border_dark">#BDBDBD</color>
+
+    <!-- Progress Colors -->
+    <color name="progress_completed">#F4A460</color>
+    <color name="progress_uncompleted">#E0E0E0</color>
+
+    <!-- Transparent -->
+    <color name="transparent">#00000000</color>
+    <color name="semi_transparent">#80000000</color>
+    <!-- BLACK & GOLD THEME COLORS -->
+
+    <!-- Primary Colors -->
+    <color name="primary_black">#1A1A1A</color>
+
+
+    <!-- Background Colors -->
+
+
+    <!-- Text Colors -->
+
+
+    <!-- Card & Component Colors -->
+
+    <color name="card_background_secondary">#F8F8F8</color>
+    <color name="card_background_cream">#FFFBF0</color>
+
+    <!-- Border Colors -->
+
+    <color name="border_medium">#CCCCCC</color>
+
+    <!-- Bottom Navigation Color Selector -->
+    <color name="bottom_nav_color_selected">#D4AF37</color>
+    <color name="bottom_nav_color_unselected">#999999</color>
+
+    <!-- Overlay Colors -->
+    <color name="overlay_dark">#CC000000</color>
+    <color name="overlay_light">#40000000</color>
+</resources>

@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Sirr-Ul-Quran</string>
+    <string name="app_tagline">Welcome to Your Journey</string>
+
+    <!-- Authentication -->
+    <string name="login">Log In</string>
+    <string name="signup">Create Account</string>
+    <string name="email_address">Email Address</string>
+    <string name="password">Password</string>
+    <string name="full_name">Full Name</string>
+    <string name="forgot_password">Forgot Password?</string>
+    <string name="or">OR</string>
+    <string name="continue_with_google">Continue with Google</string>
+
+    <!-- Navigation -->
+    <string name="home">Home</string>
+    <string name="salah">Salah</string>
+    <string name="thirty_day">30-Day</string>
+    <string name="profile">Profile</string>
+
+    <!-- Home Screen -->
+    <string name="assalamu_alaikum">Assalamu Alaikum</string>
+    <string name="consistency_key">Consistency is the key to spiritual growth. Let\'s explore today\'s wisdom together.</string>
+    <string name="ask_question">Ask a Question →</string>
+    <string name="daily_wisdom">Daily Wisdom</string>
+    <string name="ayah_of_day">Ayah of the Day</string>
+    <string name="hadith_of_day">Hadith of the Day</string>
+    <string name="quick_actions">Quick Actions</string>
+    <string name="salah_tracker">Salah Tracker</string>
+    <string name="thirty_day_plan">30-Day Plan</string>
+
+    <!-- Salah Tracker -->
+    <string name="daily_progress">Daily Progress</string>
+    <string name="prayers">Prayers</string>
+    <string name="completed">Completed</string>
+    <string name="qaza">Qaza</string>
+    <string name="offered">Offered</string>
+    <string name="long_press_tip">Tip: Long press on the checkbox to mark a prayer as Qaza (make-up prayer)</string>
+
+    <!-- 30 Day Journey -->
+    <string name="thirty_day_journey">30-Day Journey</string>
+    <string name="days_completed">%d of 30 days completed</string>
+    <string name="day">Day %d</string>
+    <string name="continue_reading">Continue Reading</string>
+    <string name="previous_day">Previous Day</string>
+    <string name="next_day">Next Day</string>
+
+    <!-- Day Content -->
+    <string name="video_player_placeholder">Video player would be embedded here</string>
+    <string name="views">%s views</string>
+    <string name="duration">%s min</string>
+    <string name="about_lesson">About This Lesson</string>
+    <string name="theme">Theme</string>
+    <string name="surah">Surah</string>
+    <string name="scholars_guide">Scholar\'s Guide</string>
+    <string name="tafseer_explanation">Tafseer Explanation</string>
+    <string name="key_takeaways">Key Takeaways</string>
+
+    <!-- Profile -->
+    <string name="completed_label">Completed</string>
+    <string name="progress_label">Progress</string>
+    <string name="send_feedback">Send Feedback</string>
+    <string name="feedback_subtitle">Help us improve the app</string>
+    <string name="settings">Settings</string>
+    <string name="settings_subtitle">Preferences and notifications</string>
+    <string name="logout">Logout</string>
+    <string name="logout_subtitle">Sign out of your account</string>
+
+    <!-- Sample Content -->
+    <string name="sample_ayah">وَمَا خَلَقْتُ ٱلْجِنَّ وَٱلْإِنسَ إِلَّا لِيَعْبُدُونِ</string>
+    <string name="sample_ayah_translation">And I did not create the jinn and mankind except to worship Me.</string>
+    <string name="sample_ayah_reference">Surah Adh-Dhariyat (51:56)</string>
+
+    <string name="sample_hadith">The best of you are those who learn the Quran and teach it.</string>
+    <string name="sample_hadith_reference">— Sahih Bukhari 5027</string>
+
+    <!-- Messages -->
+    <string name="loading">Loading…</string>
+    <string name="error_occurred">An error occurred</string>
+    <string name="no_internet">No internet connection</string>
+    <string name="login_success">Login successful</string>
+    <string name="signup_success">Account created successfully</string>
+    <string name="logout_confirm">Are you sure you want to logout?</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+    <string name="cancel">Cancel</string>
+
+    <string name="notification_settings">Notification Settings</string>
+    <string name="enable_notification">Enable Notification</string>
+    <string name="notify_me">Notify me:</string>
+    <string name="at_prayer_time">At prayer time</string>
+    <string name="save">Save</string>
+
+</resources>

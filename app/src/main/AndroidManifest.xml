@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.sirralquran">
+
+    <!-- ============================================ -->
+    <!-- ALL REQUIRED PERMISSIONS -->
+    <!-- ============================================ -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- MISSING PERMISSION - ADD THIS -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@drawable/logo"
+        android:label="@string/app_name"
+        android:roundIcon="@drawable/logo"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme"
+        android:usesCleartextTraffic="true">
+
+        <!-- Splash Screen -->
+        <activity
+            android:name=".views.SplashActivity"
+            android:exported="true"
+            android:theme="@style/SplashTheme">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Authentication Activities -->
+        <activity
+            android:name=".views.LoginActivity"
+            android:exported="false"
+            android:theme="@style/AppTheme" />
+
+        <activity
+            android:name=".views.SignUpActivity"
+            android:exported="false"
+            android:theme="@style/AppTheme" />
+
+        <!-- Main Activity -->
+        <activity
+            android:name=".views.MainActivity"
+            android:exported="false"
+            android:theme="@style/AppTheme" />
+
+        <!-- Home Activity -->
+        <activity
+            android:name=".views.HomeActivity"
+            android:exported="false"
+            android:theme="@style/AppTheme" />
+
+        <!-- Salah Tracker Activity -->
+        <activity
+            android:name=".views.SalahTrackerActivity"
+            android:exported="false"
+            android:theme="@style/AppTheme" />
+
+        <!-- 30 Day Journey Activity -->
+        <activity
+            android:name=".views.ThirtyDayJourneyActivity"
+            android:exported="false"
+            android:theme="@style/AppTheme" />
+
+        <!-- Day Content Activity -->
+        <activity
+            android:name=".views.DayContentActivity"
+            android:exported="false"
+            android:theme="@style/AppTheme" />
+
+        <!-- Profile Activity -->
+        <activity
+            android:name=".views.ProfileActivity"
+            android:exported="false"
+            android:theme="@style/AppTheme" />
+
+        <activity
+            android:name=".views.VideoPlayerActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.SirrAlQuran" />
+
+        <!-- ============================================ -->
+        <!-- CRITICAL: Prayer Notification Receiver -->
+        <!-- ============================================ -->
+        <receiver
+            android:name=".receivers.PrayerNotificationReceiver"
+            android:enabled="true"
+            android:exported="false" />
+
+    </application>
+
+</manifest>

@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="16dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="2dp"
+    app:cardBackgroundColor="#FFFFFF">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp">
+
+        <!-- Left Gold Bar (for completed/unlocked days) -->
+        <View
+            android:id="@+id/leftGoldBar"
+            android:layout_width="4dp"
+            android:layout_height="match_parent"
+            android:layout_marginEnd="16dp"
+            android:background="@drawable/gold_bar_background"
+            android:visibility="visible" />
+
+        <!-- Day Badge (Black rounded square) -->
+        <LinearLayout
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:background="@drawable/day_badge_background"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/dayNumberBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Day 1"
+                android:textColor="#D4AF37"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Lesson Info -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="16dp"
+            android:orientation="vertical">
+
+            <!-- Surah Number/Info -->
+            <TextView
+                android:id="@+id/surahInfoText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Surah 1"
+                android:textColor="#D4AF37"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <!-- Lesson Title -->
+            <TextView
+                android:id="@+id/lessonTitleText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Al-Fatihah"
+                android:textColor="#1A1A1A"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <!-- Lesson Description -->
+            <TextView
+                android:id="@+id/lessonDescriptionText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="The Opening - A Complete Prayer"
+                android:textColor="#666666"
+                android:textSize="13sp"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:lineSpacingExtra="2dp" />
+        </LinearLayout>
+
+        <!-- Right Side Indicator (Gold Dot for completed, Lock for locked) -->
+        <FrameLayout
+            android:layout_width="32dp"
+            android:layout_height="match_parent"
+            android:gravity="center">
+
+            <!-- Gold Completion Dot -->
+            <ImageView
+                android:id="@+id/completionDot"
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:layout_gravity="center"
+                android:src="@drawable/gold_dot"
+                android:visibility="visible"
+                android:contentDescription="Completed" />
+
+            <!-- Lock Icon (for locked days) -->
+            <ImageView
+                android:id="@+id/lockIcon"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_lock_outline"
+                android:tint="#CCCCCC"
+                android:visibility="gone"
+                android:contentDescription="Locked" />
+        </FrameLayout>
+    </LinearLayout>
+</androidx.cardview.widget.CardView>

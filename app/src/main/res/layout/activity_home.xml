@@ -240,7 +240,7 @@
                 android:textStyle="bold"
                 android:layout_marginBottom="12dp" />
 
-            <!-- Ayah of the Day Card -->
+            <!-- Ayah of the Day Card (UPDATED WITH IDs) -->
             <androidx.cardview.widget.CardView
                 android:id="@+id/ayahCard"
                 android:layout_width="match_parent"
@@ -279,7 +279,9 @@
                             android:textStyle="bold" />
                     </LinearLayout>
 
+                    <!-- ARABIC TEXT (NEW ID) -->
                     <TextView
+                        android:id="@+id/ayahArabicText"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
@@ -291,7 +293,9 @@
                         android:gravity="center"
                         android:lineSpacingExtra="4dp" />
 
+                    <!-- ENGLISH TRANSLATION (NEW ID) -->
                     <TextView
+                        android:id="@+id/ayahEnglishText"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
@@ -300,7 +304,9 @@
                         android:textSize="14sp"
                         android:lineSpacingExtra="2dp" />
 
+                    <!-- REFERENCE (NEW ID) -->
                     <TextView
+                        android:id="@+id/ayahReferenceText"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
@@ -311,7 +317,7 @@
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
-            <!-- Hadith of the Day Card -->
+            <!-- Hadith of the Day Card (UPDATED WITH IDs) -->
             <androidx.cardview.widget.CardView
                 android:id="@+id/hadithCard"
                 android:layout_width="match_parent"
@@ -350,17 +356,36 @@
                             android:textStyle="bold" />
                     </LinearLayout>
 
+                    <!-- HADITH ARABIC TEXT (NEW ID) -->
                     <TextView
+                        android:id="@+id/hadithArabicText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ"
+                        android:textColor="#1A1A1A"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textAlignment="center"
+                        android:gravity="center"
+                        android:lineSpacingExtra="4dp"
+                        android:visibility="gone" />
+
+                    <!-- HADITH ENGLISH TEXT (NEW ID) -->
+                    <TextView
+                        android:id="@+id/hadithEnglishText"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
                         android:text="The best of you are those who learn the Quran and teach it."
-                    android:textColor="#1A1A1A"
-                    android:textSize="15sp"
-                    android:fontFamily="serif"
-                    android:lineSpacingExtra="3dp" />
+                        android:textColor="#1A1A1A"
+                        android:textSize="15sp"
+                        android:fontFamily="serif"
+                        android:lineSpacingExtra="3dp" />
 
+                    <!-- HADITH REFERENCE (NEW ID) -->
                     <TextView
+                        android:id="@+id/hadithReferenceText"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"

@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "541127083418",
+    "firebase_url": "https://sirrallquran-default-rtdb.firebaseio.com",
+    "project_id": "sirrallquran",
+    "storage_bucket": "sirrallquran.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:541127083418:android:f413c47acd4b6ff7b36623",
+        "android_client_info": {
+          "package_name": "com.example.sirralquran"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAFp8v8XTLFMa1X-D3O_VsdKHY9ArENu7o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
