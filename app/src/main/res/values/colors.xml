@@ -63,4 +63,6 @@
     <!-- Overlay Colors -->
     <color name="overlay_dark">#CC000000</color>
     <color name="overlay_light">#40000000</color>
+
+
 </resources>

@@ -22,17 +22,14 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * COMPLETE Prayer Notification Manager
- * - Fixed: Unique request codes for each prayer
- * - Fixed: Proper time calculation
- * - Fixed: Detailed logging
+ * ENHANCED Prayer Notification Manager with Custom Test
  */
 public class PrayerNotificationManager {
     private static final String TAG = "PrayerNotification";
     private static final String CHANNEL_ID = "prayer_notifications";
     private static final String CHANNEL_NAME = "Prayer Times";
 
-    // CRITICAL: Unique request codes for each prayer
+    // Request codes
     private static final int REQUEST_CODE_FAJR = 100;
     private static final int REQUEST_CODE_DHUHR = 200;
     private static final int REQUEST_CODE_ASR = 300;
@@ -50,17 +47,6 @@ public class PrayerNotificationManager {
         this.notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
 
         createNotificationChannel();
-        checkExactAlarmPermission();
-    }
-
-    private void checkExactAlarmPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (alarmManager.canScheduleExactAlarms()) {
-                Log.d(TAG, "✅ Exact alarm permission granted");
-            } else {
-                Log.e(TAG, "❌ CRITICAL: Exact alarm permission NOT granted!");
-            }
-        }
     }
 
     public boolean canScheduleExactAlarms() {
@@ -98,9 +84,6 @@ public class PrayerNotificationManager {
         return RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
     }
 
-    /**
-     * Get unique request code for each prayer
-     */
     private int getRequestCodeForPrayer(String prayerName) {
         switch (prayerName) {
             case "Fajr": return REQUEST_CODE_FAJR;
@@ -132,14 +115,7 @@ public class PrayerNotificationManager {
 
         for (Prayer prayer : prayers) {
             if (!prayer.hasNotification() || prayer.isCompleted()) {
-                if (prayer.isCompleted()) {
-                    Log.d(TAG, "⏭️ " + prayer.getName() + " - Already completed");
-                } else {
-                    Log.d(TAG, "⏭️ " + prayer.getName() + " - Notification disabled");
-                }
                 disabled++;
-
-                // Cancel any existing alarm for this prayer
                 cancelPrayerNotification(getRequestCodeForPrayer(prayer.getName()));
                 continue;
             }
@@ -156,9 +132,6 @@ public class PrayerNotificationManager {
         Log.d(TAG, "📅 ========================================");
     }
 
-    /**
-     * Schedule notification for a single prayer
-     */
     public boolean schedulePrayerNotification(Prayer prayer) {
         try {
             int requestCode = getRequestCodeForPrayer(prayer.getName());
@@ -202,16 +175,12 @@ public class PrayerNotificationManager {
 
             PendingIntent pendingIntent = PendingIntent.getBroadcast(
                     context,
-                    requestCode,  // Unique for each prayer
+                    requestCode,
                     intent,
                     PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
             );
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                if (!alarmManager.canScheduleExactAlarms()) {
-                    Log.e(TAG, "   ❌ FAILED: No exact alarm permission!");
-                    return false;
-                }
                 alarmManager.setExactAndAllowWhileIdle(
                         AlarmManager.RTC_WAKEUP,
                         notificationTime,
@@ -245,9 +214,6 @@ public class PrayerNotificationManager {
         }
     }
 
-    /**
-     * Cancel notification for a prayer by request code
-     */
     public void cancelPrayerNotification(int requestCode) {
         Intent intent = new Intent(context, PrayerNotificationReceiver.class);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
@@ -261,9 +227,6 @@ public class PrayerNotificationManager {
         Log.d(TAG, "❌ Cancelled notification (code: " + requestCode + ")");
     }
 
-    /**
-     * Cancel all prayer notifications
-     */
     public void cancelAllNotifications() {
         Log.d(TAG, "❌ Cancelling all notifications...");
         cancelPrayerNotification(REQUEST_CODE_FAJR);
@@ -274,9 +237,6 @@ public class PrayerNotificationManager {
         Log.d(TAG, "✅ All notifications cancelled");
     }
 
-    /**
-     * Parse prayer time string to Calendar
-     */
     private Calendar parsePrayerTime(String timeStr) {
         try {
             SimpleDateFormat sdf = new SimpleDateFormat("hh:mm a", Locale.ENGLISH);
@@ -303,23 +263,32 @@ public class PrayerNotificationManager {
     }
 
     /**
-     * Schedule test notification in 10 seconds
+     * Schedule test notification in 10 seconds (default)
      */
     public void scheduleTestNotification() {
-        Log.d(TAG, "🧪 Scheduling test notification in 10 seconds...");
+        scheduleCustomTestNotification(10, "Test", "Test notification");
+    }
+
+    /**
+     * Schedule CUSTOM test notification
+     */
+    public void scheduleCustomTestNotification(int seconds, String title, String message) {
+        Log.d(TAG, "🧪 Scheduling test notification in " + seconds + " seconds...");
 
         if (!canScheduleExactAlarms()) {
             Log.e(TAG, "❌ Cannot schedule test: No permission!");
             return;
         }
 
-        long triggerTime = System.currentTimeMillis() + 10000;
+        long triggerTime = System.currentTimeMillis() + (seconds * 1000L);
 
         Intent intent = new Intent(context, PrayerNotificationReceiver.class);
-        intent.putExtra("prayer_name", "Test");
+        intent.putExtra("prayer_name", title);
         intent.putExtra("prayer_name_arabic", "اختبار");
         intent.putExtra("prayer_time", "Now");
         intent.putExtra("notification_offset", 0);
+        intent.putExtra("is_test", true);
+        intent.putExtra("test_message", message);
 
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
                 context,

@@ -20,16 +20,23 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * COMPLETE FIXED Adapter with:
- * - Qaza display
- * - Crash prevention
- * - Proper time display
+ * ULTIMATE FIXED Adapter:
+ * 1. Blocks checkbox BEFORE prayer time
+ * 2. Blocks long-press (Qaza) BEFORE prayer time
+ * 3. Color coding: Qaza (RED), Offered (GREEN), Notification (ORANGE)
+ * 4. Clears listener properly (no crash)
  */
 public class PrayerAdapter extends RecyclerView.Adapter<PrayerAdapter.ViewHolder> {
 
     private static final String TAG = "PrayerAdapter";
     private final List<Prayer> prayers;
     private final OnPrayerClickListener listener;
+
+    // COLORS
+    private static final int COLOR_QAZA = Color.parseColor("#F44336");      // Red
+    private static final int COLOR_OFFERED = Color.parseColor("#4CAF50");   // Green
+    private static final int COLOR_NOTIFICATION = Color.parseColor("#FF9800"); // Orange
+    private static final int COLOR_DEFAULT = Color.parseColor("#666666");   // Gray
 
     public PrayerAdapter(List<Prayer> prayers, OnPrayerClickListener listener) {
         this.prayers = prayers;
@@ -52,28 +59,29 @@ public class PrayerAdapter extends RecyclerView.Adapter<PrayerAdapter.ViewHolder
         holder.prayerNameText.setText(prayer.getName());
         holder.prayerNameArabicText.setText(prayer.getNameArabic());
 
-        // Build time display based on state
-        String timeDisplay = buildTimeDisplay(prayer);
-        holder.prayerTimeText.setText(timeDisplay);
-
-        // Set color based on state
-        if (prayer.isQaza()) {
-            holder.prayerTimeText.setTextColor(Color.parseColor("#F44336")); // Red for Qaza
-        } else if (prayer.isCompleted() && prayer.getOfferedTime() != null) {
-            holder.prayerTimeText.setTextColor(Color.parseColor("#4CAF50")); // Green for completed
-        } else if (prayer.hasNotification() && !prayer.isCompleted()) {
-            holder.prayerTimeText.setTextColor(Color.parseColor("#FF9800")); // Orange for notification
-        } else {
-            holder.prayerTimeText.setTextColor(Color.parseColor("#666666")); // Gray default
-        }
+        // Build time display with color
+        TimeDisplayResult result = buildTimeDisplayWithColor(prayer);
+        holder.prayerTimeText.setText(result.text);
+        holder.prayerTimeText.setTextColor(result.color);
 
         // Check if prayer time has arrived
         boolean timeArrived = prayer.hasPrayerTimeArrived();
 
-        // Enable/disable checkbox
+        // CRITICAL: Clear listener FIRST
+        holder.prayerCheckBox.setOnCheckedChangeListener(null);
+
+        // Enable/disable checkbox (only after time OR if already Qaza)
         holder.prayerCheckBox.setEnabled(timeArrived || prayer.isQaza());
         holder.prayerCheckBox.setChecked(prayer.isCompleted());
         holder.prayerCheckBox.setAlpha((timeArrived || prayer.isQaza()) ? 1.0f : 0.5f);
+
+        // Set checkbox listener
+        holder.prayerCheckBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (listener != null && (timeArrived || prayer.isQaza())) {
+                Log.d(TAG, "Checkbox changed: " + prayer.getName() + " = " + isChecked);
+                listener.onPrayerChecked(prayer, isChecked);
+            }
+        });
 
         // Show/hide "Offered" badge
         if (prayer.isCompleted()) {
@@ -95,21 +103,14 @@ public class PrayerAdapter extends RecyclerView.Adapter<PrayerAdapter.ViewHolder
             holder.notificationIcon.setVisibility(View.GONE);
         }
 
-        // Checkbox change listener with null check
-        holder.prayerCheckBox.setOnCheckedChangeListener(null); // Clear previous listener
-        holder.prayerCheckBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (listener != null && (timeArrived || prayer.isQaza())) {
-                Log.d(TAG, "Checkbox changed: " + prayer.getName() + " = " + isChecked);
-                listener.onPrayerChecked(prayer, isChecked);
-            }
-        });
-
-        // Long click for Qaza marking
+        // CRITICAL: Long click ONLY works if time has arrived
         holder.itemView.setOnLongClickListener(v -> {
-            if (listener != null) {
+            if (listener != null && timeArrived) {
                 listener.onPrayerLongClick(prayer);
+                return true;
             }
-            return true;
+            // Do nothing if time hasn't arrived
+            return false;
         });
 
         // Bell click
@@ -125,24 +126,49 @@ public class PrayerAdapter extends RecyclerView.Adapter<PrayerAdapter.ViewHolder
     }
 
     /**
-     * Build time display string based on prayer state
+     * Build time display with color based on prayer state
+     * Priority: Qaza → Offered → Notification → Default
      */
-    private String buildTimeDisplay(Prayer prayer) {
-        StringBuilder display = new StringBuilder(prayer.getTime());
+    private TimeDisplayResult buildTimeDisplayWithColor(Prayer prayer) {
+        String baseTime = prayer.getTime();
 
+        // Priority 1: Qaza (RED)
         if (prayer.isQaza()) {
-            // Show QAZA status
-            display.append(" • QAZA");
-        } else if (prayer.isCompleted() && prayer.getOfferedTime() != null) {
-            // Show offered time
-            display.append(" • Offered: ").append(prayer.getOfferedTime());
-        } else if (prayer.hasNotification() && !prayer.isCompleted()) {
-            // Show notification time
-            String notifTime = calculateNotificationTime(prayer.getTime(), prayer.getNotificationOffset());
-            display.append(" • Notif: ").append(notifTime);
+            return new TimeDisplayResult(baseTime + " • QAZA", COLOR_QAZA);
         }
 
-        return display.toString();
+        // Priority 2: Offered (GREEN)
+        if (prayer.isCompleted() && prayer.getOfferedTime() != null && !prayer.getOfferedTime().isEmpty()) {
+            return new TimeDisplayResult(
+                    baseTime + " • Offered: " + prayer.getOfferedTime(),
+                    COLOR_OFFERED
+            );
+        }
+
+        // Priority 3: Notification (ORANGE)
+        if (prayer.hasNotification() && !prayer.isCompleted()) {
+            String notifTime = calculateNotificationTime(prayer.getTime(), prayer.getNotificationOffset());
+            return new TimeDisplayResult(
+                    baseTime + " • Notif: " + notifTime,
+                    COLOR_NOTIFICATION
+            );
+        }
+
+        // Priority 4: Default (GRAY)
+        return new TimeDisplayResult(baseTime, COLOR_DEFAULT);
+    }
+
+    /**
+     * Helper class for text + color
+     */
+    private static class TimeDisplayResult {
+        String text;
+        int color;
+
+        TimeDisplayResult(String text, int color) {
+            this.text = text;
+            this.color = color;
+        }
     }
 
     /**

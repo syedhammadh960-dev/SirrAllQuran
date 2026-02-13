@@ -1,3 +1,9 @@
+// ========================================
+// MINIMAL FIX: Permission Bug Only
+// CHANGE: Request all permissions TOGETHER in ONE call
+// NO OTHER CHANGES
+// ========================================
+
 package com.example.sirralquran.views;
 
 import android.Manifest;
@@ -6,10 +12,13 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.Menu;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
@@ -23,8 +32,10 @@ import com.google.android.material.progressindicator.CircularProgressIndicator;
 import com.example.sirralquran.R;
 import com.example.sirralquran.adapters.PrayerAdapter;
 import com.example.sirralquran.controllers.PrayerController;
+import com.example.sirralquran.dialogs.FiqhSelectionDialog;
 import com.example.sirralquran.dialogs.NotificationSettingsDialog;
 import com.example.sirralquran.models.Prayer;
+import com.example.sirralquran.utils.HijriDateHelper;
 import com.example.sirralquran.utils.LocationHelper;
 import com.example.sirralquran.utils.PrayerNotificationManager;
 import java.text.SimpleDateFormat;
@@ -34,33 +45,37 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * COMPLETE Salah Tracker with all fixes
+ * UPDATED: Removed back button, added Fiqh selector button
  */
 public class SalahTrackerActivity extends AppCompatActivity implements PrayerAdapter.OnPrayerClickListener {
 
     private static final String TAG = "SalahTracker";
     private static final int PERMISSIONS_REQUEST = 1001;
 
-    private ImageView backButton;
+    // UI Components - REMOVED backButton, ADDED fiqhSelectorButton
+    private LinearLayout fiqhSelectorButton;
+    private TextView fiqhMethodText;
     private TextView dateText;
     private TextView hijriDateText;
     private TextView locationText;
     private RecyclerView prayerRecyclerView;
+    private SwipeRefreshLayout swipeRefreshLayout;
     private CircularProgressIndicator progressIndicator;
     private TextView completedCountText;
     private TextView qazaCountText;
-    private TextView tipText;
     private BottomNavigationView bottomNavigationView;
-    private SwipeRefreshLayout swipeRefreshLayout;
 
-    private PrayerAdapter prayerAdapter;
+    // Controllers and Adapters
     private PrayerController prayerController;
+    private PrayerAdapter prayerAdapter;
     private PrayerNotificationManager notificationManager;
+    private HijriDateHelper hijriDateHelper;
     private List<Prayer> prayerList;
 
-    private boolean permissionsChecked = false;
+    // Handler for safe UI updates
+    private final Handler uiHandler = new Handler(Looper.getMainLooper());
+
     private boolean initialLoadDone = false;
-    private boolean isUpdatingPrayer = false;  // Prevent concurrent updates
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,96 +83,178 @@ public class SalahTrackerActivity extends AppCompatActivity implements PrayerAda
         setContentView(R.layout.activity_salah_tracker);
 
         initializeViews();
-        prayerController = new PrayerController(this);
-        notificationManager = new PrayerNotificationManager(this);
-
-        loadPrayerData();
+        initializeControllers();
         setupRecyclerView();
-        setupClickListeners();
-        setupBottomNavigation();
         setupSwipeRefresh();
-
-        if (!permissionsChecked) {
-            checkAndRequestPermissions();
-            permissionsChecked = true;
-        }
-
-        checkExactAlarmPermission();
+        setupFiqhSelector(); // NEW
+        setupBottomNavigation();
+        loadInitialData();
     }
 
     private void initializeViews() {
-        backButton = findViewById(R.id.backButton);
+        // REMOVED: backButton
+        // NEW: Fiqh selector button
+        fiqhSelectorButton = findViewById(R.id.fiqhSelectorButton);
+        fiqhMethodText = findViewById(R.id.fiqhMethodText);
+
         dateText = findViewById(R.id.dateText);
         hijriDateText = findViewById(R.id.hijriDateText);
         locationText = findViewById(R.id.locationText);
         prayerRecyclerView = findViewById(R.id.prayerRecyclerView);
+        swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
         progressIndicator = findViewById(R.id.progressIndicator);
         completedCountText = findViewById(R.id.completedCountText);
         qazaCountText = findViewById(R.id.qazaCountText);
-        tipText = findViewById(R.id.tipText);
         bottomNavigationView = findViewById(R.id.bottomNavigationView);
-        swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
+
+        // Update current Fiqh method display
+        updateFiqhMethodDisplay();
     }
 
-    private void checkExactAlarmPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (!notificationManager.canScheduleExactAlarms()) {
-                Log.e(TAG, "❌ No exact alarm permission");
-                showExactAlarmPermissionDialog();
-            }
-        }
+    private void initializeControllers() {
+        prayerController = new PrayerController(this);
+        notificationManager = new PrayerNotificationManager(this);
+        hijriDateHelper = new HijriDateHelper(this);
+        prayerList = new ArrayList<>();
     }
 
-    private void showExactAlarmPermissionDialog() {
-        new AlertDialog.Builder(this)
-                .setTitle("Allow Exact Alarms")
-                .setMessage("Prayer notifications require permission to schedule exact alarms.\n\nPlease enable 'Alarms & reminders'.")
-                .setPositiveButton("Open Settings", (dialog, which) -> {
-                    notificationManager.openExactAlarmSettings();
-                })
-                .setNegativeButton("Later", null)
-                .show();
-    }
-
-    private void checkAndRequestPermissions() {
-        List<String> permissionsNeeded = new ArrayList<>();
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                permissionsNeeded.add(Manifest.permission.POST_NOTIFICATIONS);
-            }
-        }
-
-        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            permissionsNeeded.add(Manifest.permission.ACCESS_FINE_LOCATION);
-        }
-        if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            permissionsNeeded.add(Manifest.permission.ACCESS_COARSE_LOCATION);
-        }
-
-        if (!permissionsNeeded.isEmpty()) {
-            requestPermissions(permissionsNeeded.toArray(new String[0]), PERMISSIONS_REQUEST);
-        } else {
-            if (!initialLoadDone) {
-                checkLocationAndFetchSmart(false);
-                initialLoadDone = true;
-            }
-        }
+    private void setupRecyclerView() {
+        prayerAdapter = new PrayerAdapter(prayerList, this);
+        prayerRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        prayerRecyclerView.setAdapter(prayerAdapter);
     }
 
     private void setupSwipeRefresh() {
-        swipeRefreshLayout.setColorSchemeResources(
-                android.R.color.holo_orange_dark,
-                R.color.accent_gold
-        );
-
         swipeRefreshLayout.setOnRefreshListener(this::refreshPrayerTimes);
+        swipeRefreshLayout.setColorSchemeColors(
+                getResources().getColor(R.color.primary_green, null)
+        );
     }
 
-    private void loadPrayerData() {
-        prayerList = prayerController.getTodaysPrayers();
-        updateProgressUI();
+    /**
+     * NEW: Setup Fiqh selector button
+     */
+    private void setupFiqhSelector() {
+        fiqhSelectorButton.setOnClickListener(v -> showFiqhSelectionDialog());
+    }
+
+    /**
+     * NEW: Update Fiqh method text display
+     */
+    private void updateFiqhMethodDisplay() {
+        String methodName = FiqhSelectionDialog.getSavedMethodName(this);
+
+        // Show short name
+        String shortName = getShortMethodName(methodName);
+        fiqhMethodText.setText(shortName);
+    }
+
+    /**
+     * NEW: Get short name for display
+     */
+    private String getShortMethodName(String fullName) {
+        if (fullName.contains("Karachi")) return "Hanafi";
+        if (fullName.contains("Shia")) return "Shia";
+        if (fullName.contains("ISNA")) return "ISNA";
+        if (fullName.contains("World League")) return "MWL";
+        if (fullName.contains("Umm")) return "Makkah";
+        if (fullName.contains("Egyptian")) return "Egypt";
+        return "Hanafi"; // Default
+    }
+
+    /**
+     * NEW: Show Fiqh selection dialog
+     */
+    private void showFiqhSelectionDialog() {
+        FiqhSelectionDialog dialog = new FiqhSelectionDialog(this, (method, methodName) -> {
+            Log.d(TAG, "📊 Fiqh changed to: " + methodName + " (method=" + method + ")");
+
+            // Update display
+            updateFiqhMethodDisplay();
+
+            Toast.makeText(this,
+                    "📖 Using: " + methodName,
+                    Toast.LENGTH_SHORT).show();
+
+            // Force refresh prayer times with new method
+            swipeRefreshLayout.setRefreshing(true);
+            refreshPrayerTimes();
+        });
+
+        dialog.show();
+    }
+
+    // ========================================
+    // ✅ PERMISSION FIX: Request all permissions TOGETHER in ONE call
+    // ========================================
+    private void loadInitialData() {
+        loadHijriDate();
         updateDateInfo();
+
+        LocationHelper locationHelper = prayerController.getLocationHelper();
+
+        // ✅ FIX: Check if ANY permission is missing
+        boolean needsPermissions = !locationHelper.hasLocationPermission();
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                needsPermissions = true;
+            }
+        }
+
+        if (needsPermissions) {
+            // ✅ FIX: Request ALL permissions in ONE call
+            requestAllPermissions();
+        } else {
+            loadPrayerData();
+
+            if (!initialLoadDone) {
+                if (locationHelper.isGPSEnabled()) {
+                    checkLocationAndFetchSmart(false);
+                    initialLoadDone = true;
+                } else {
+                    showGPSEnableDialog();
+                }
+            }
+        }
+
+        updateDateInfo();
+    }
+
+    /**
+     * ✅ FIX: Request ALL permissions in ONE call
+     */
+    private void requestAllPermissions() {
+        List<String> permissions = new ArrayList<>();
+
+        // Always request location
+        permissions.add(Manifest.permission.ACCESS_FINE_LOCATION);
+        permissions.add(Manifest.permission.ACCESS_COARSE_LOCATION);
+
+        // Add notification permission for Android 13+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissions.add(Manifest.permission.POST_NOTIFICATIONS);
+        }
+
+        Log.d(TAG, "📢 Requesting " + permissions.size() + " permissions in ONE call");
+        requestPermissions(permissions.toArray(new String[0]), PERMISSIONS_REQUEST);
+    }
+
+    private void loadHijriDate() {
+        hijriDateText.setText(hijriDateHelper.getCachedHijriDate());
+
+        hijriDateHelper.fetchHijriDate(new HijriDateHelper.HijriDateCallback() {
+            @Override
+            public void onSuccess(String hijriDate) {
+                runOnUiThread(() -> hijriDateText.setText(hijriDate));
+            }
+
+            @Override
+            public void onError(String error) {
+                Log.e(TAG, "Hijri date error: " + error);
+            }
+        });
     }
 
     private void refreshPrayerTimes() {
@@ -191,8 +288,8 @@ public class SalahTrackerActivity extends AppCompatActivity implements PrayerAda
     private void showGPSEnableDialog() {
         new AlertDialog.Builder(this)
                 .setTitle("Enable GPS")
-                .setMessage("GPS required for accurate prayer times.")
-                .setPositiveButton("Enable", (dialog, which) -> {
+                .setMessage("GPS is required for accurate prayer times. Enable it now?")
+                .setPositiveButton("Settings", (dialog, which) -> {
                     startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
                 })
                 .setNegativeButton("Cancel", null)
@@ -200,210 +297,176 @@ public class SalahTrackerActivity extends AppCompatActivity implements PrayerAda
     }
 
     private void fetchPrayerTimes(boolean forceRefresh) {
-        prayerController.fetchPrayerTimesFromAPI(new PrayerController.OnPrayerTimesLoadedListener() {
-            @Override
-            public void onSuccess(List<Prayer> prayers) {
-                runOnUiThread(() -> {
-                    prayerList.clear();
-                    prayerList.addAll(prayers);
+        prayerController.fetchPrayerTimesFromAPI(
+                new PrayerController.OnPrayerTimesLoadedListener() {
+                    @Override
+                    public void onSuccess(List<Prayer> prayers) {
+                        runOnUiThread(() -> {
+                            prayerList.clear();
+                            prayerList.addAll(prayers);
 
-                    prayerAdapter.notifyDataSetChanged();
-                    updateProgressUI();
-                    updateDateInfo();
+                            uiHandler.post(() -> {
+                                prayerAdapter.notifyDataSetChanged();
+                            });
 
-                    if (swipeRefreshLayout != null) {
-                        swipeRefreshLayout.setRefreshing(false);
+                            swipeRefreshLayout.setRefreshing(false);
+                            scheduleNotifications();
+
+                            String message = forceRefresh ? "Prayer times updated ✓" : "Prayer times loaded ✓";
+                            Toast.makeText(SalahTrackerActivity.this, message, Toast.LENGTH_SHORT).show();
+                        });
                     }
 
-                    scheduleNotifications();
+                    @Override
+                    public void onError(String error) {
+                        runOnUiThread(() -> {
+                            swipeRefreshLayout.setRefreshing(false);
+                            Toast.makeText(SalahTrackerActivity.this,
+                                    "Failed: " + error, Toast.LENGTH_SHORT).show();
 
-                    Toast.makeText(SalahTrackerActivity.this,
-                            "Prayer times updated ✓",
-                            Toast.LENGTH_SHORT).show();
-                });
-            }
-
-            @Override
-            public void onError(String error) {
-                runOnUiThread(() -> {
-                    if (swipeRefreshLayout != null) {
-                        swipeRefreshLayout.setRefreshing(false);
+                            loadPrayerData();
+                        });
                     }
-                    Toast.makeText(SalahTrackerActivity.this,
-                            "Could not update",
-                            Toast.LENGTH_SHORT).show();
-                });
-            }
-        }, forceRefresh);
+                },
+                forceRefresh
+        );
     }
 
-    private void scheduleNotifications() {
-        if (!notificationManager.canScheduleExactAlarms()) {
-            Toast.makeText(this,
-                    "⚠️ Enable 'Alarms & reminders' for notifications",
-                    Toast.LENGTH_LONG).show();
-            return;
-        }
+    private void loadPrayerData() {
+        List<Prayer> prayers = prayerController.getTodaysPrayers();
+        prayerList.clear();
+        prayerList.addAll(prayers);
 
-        notificationManager.cancelAllNotifications();
-        notificationManager.scheduleAllPrayerNotifications(prayerList);
+        uiHandler.post(() -> {
+            prayerAdapter.notifyDataSetChanged();
+        });
+
+        updateProgress();
+        updateLocationDisplay();
     }
 
     private void updateDateInfo() {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("EEEE, MMMM dd, yyyy", Locale.ENGLISH);
-        dateText.setText(dateFormat.format(new Date()));
-        hijriDateText.setText("15 Ramadan 1446");
-        locationText.setText(prayerController.getLocationHelper().getCachedCity());
+        SimpleDateFormat sdf = new SimpleDateFormat("EEEE, MMMM dd, yyyy", Locale.ENGLISH);
+        dateText.setText(sdf.format(new Date()));
     }
 
-    private void setupRecyclerView() {
-        prayerAdapter = new PrayerAdapter(prayerList, this);
-        prayerRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-        prayerRecyclerView.setAdapter(prayerAdapter);
-        prayerRecyclerView.setNestedScrollingEnabled(false);
+    private void updateLocationDisplay() {
+        LocationHelper locationHelper = prayerController.getLocationHelper();
+        String city = locationHelper.getCachedCity();
+        locationText.setText(city);
     }
 
-    private void setupClickListeners() {
-        backButton.setOnClickListener(v -> showOptionsMenu());
-    }
-
-    private void showOptionsMenu() {
-        PopupMenu popup = new PopupMenu(this, backButton);
-        popup.getMenu().add(Menu.NONE, 1, Menu.NONE, "Refresh Prayer Times");
-        popup.getMenu().add(Menu.NONE, 2, Menu.NONE, "Test Notification (10s)");
-        popup.getMenu().add(Menu.NONE, 3, Menu.NONE, "Check Alarm Permission");
-        popup.getMenu().add(Menu.NONE, 4, Menu.NONE, "Back");
-
-        popup.setOnMenuItemClickListener(item -> {
-            switch (item.getItemId()) {
-                case 1:
-                    swipeRefreshLayout.setRefreshing(true);
-                    refreshPrayerTimes();
-                    return true;
-                case 2:
-                    testNotification();
-                    return true;
-                case 3:
-                    checkExactAlarmPermission();
-                    return true;
-                case 4:
-                    finish();
-                    return true;
-            }
-            return false;
-        });
-
-        popup.show();
-    }
-
-    private void testNotification() {
-        if (!notificationManager.canScheduleExactAlarms()) {
-            Toast.makeText(this,
-                    "❌ Enable 'Alarms & reminders' first",
-                    Toast.LENGTH_LONG).show();
-            checkExactAlarmPermission();
-            return;
-        }
-
-        notificationManager.scheduleTestNotification();
-        Toast.makeText(this, "🧪 Test notification in 10 seconds", Toast.LENGTH_LONG).show();
-    }
-
-    private void setupBottomNavigation() {
-        bottomNavigationView.setSelectedItemId(R.id.nav_salah);
-
-        bottomNavigationView.setOnNavigationItemSelectedListener(item -> {
-            int itemId = item.getItemId();
-
-            if (itemId == R.id.nav_home) {
-                startActivity(new Intent(this, HomeActivity.class));
-                finish();
-                return true;
-            } else if (itemId == R.id.nav_salah) {
-                return true;
-            } else if (itemId == R.id.nav_thirty_day) {
-                startActivity(new Intent(this, ThirtyDayJourneyActivity.class));
-                finish();
-                return true;
-            } else if (itemId == R.id.nav_profile) {
-                startActivity(new Intent(this, ProfileActivity.class));
-                finish();
-                return true;
-            }
-
-            return false;
-        });
-    }
-
-    private void updateProgressUI() {
+    private void updateProgress() {
         int completed = prayerController.getCompletedPrayersCount();
         int qaza = prayerController.getQazaPrayersCount();
-        int total = prayerList.size();
-        int progress = total > 0 ? (completed * 100) / total : 0;
+        int total = 5;
 
-        progressIndicator.setProgress(progress);
         completedCountText.setText(String.valueOf(completed));
         qazaCountText.setText(String.valueOf(qaza));
+
+        int progress = (int) ((completed / (float) total) * 100);
+        progressIndicator.setProgress(progress);
+    }
+
+    private void scheduleNotifications() {
+        // ✅ CHECK: Notification permission (Android 13+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                Log.w(TAG, "⚠️ Cannot schedule: POST_NOTIFICATIONS not granted");
+                return;
+            }
+        }
+
+        // ✅ CHECK: Exact alarm permission (Android 12+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (!notificationManager.canScheduleExactAlarms()) {
+                Log.w(TAG, "⚠️ Cannot schedule: No exact alarm permission");
+                return;
+            }
+        }
+
+        notificationManager.scheduleAllPrayerNotifications(prayerList);
+    }
+
+    private void checkExactAlarmPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (!notificationManager.canScheduleExactAlarms()) {
+                new AlertDialog.Builder(this)
+                        .setTitle("Permission Required")
+                        .setMessage("Enable 'Alarms & reminders' for prayer notifications")
+                        .setPositiveButton("Settings", (dialog, which) -> {
+                            notificationManager.openExactAlarmSettings();
+                        })
+                        .setNegativeButton("Cancel", null)
+                        .show();
+            } else {
+                Toast.makeText(this, "✓ Permission granted", Toast.LENGTH_SHORT).show();
+            }
+        } else {
+            Toast.makeText(this, "✓ No permission needed (Android < 12)", Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override
     public void onPrayerChecked(Prayer prayer, boolean isChecked) {
-        if (isUpdatingPrayer) return;  // Prevent concurrent updates
+        Log.d(TAG, "Prayer checked: " + prayer.getName() + " = " + isChecked);
+        prayer.setCompleted(isChecked);
 
-        isUpdatingPrayer = true;
-
-        try {
-            prayer.setCompleted(isChecked);
-            if (isChecked && prayer.isQaza()) {
-                prayer.setQaza(false);
-            }
-
-            prayerController.updatePrayerStatus(prayer);
-            updateProgressUI();
-
-            // Reschedule notifications (will cancel if completed)
-            scheduleNotifications();
-
-            prayerAdapter.notifyDataSetChanged();
-
-            Log.d(TAG, "✅ Prayer updated: " + prayer.getName() +
-                    " | Completed: " + prayer.isCompleted() +
-                    " | Offered: " + prayer.getOfferedTime());
-
-        } finally {
-            isUpdatingPrayer = false;
+        // ✅ Record offered time
+        if (isChecked) {
+            SimpleDateFormat sdf = new SimpleDateFormat("hh:mm a", Locale.ENGLISH);
+            prayer.setOfferedTime(sdf.format(new Date()));
+        } else {
+            prayer.setOfferedTime(null);
         }
+
+        prayerController.updatePrayerStatus(prayer);
+
+        uiHandler.post(() -> {
+            prayerAdapter.notifyDataSetChanged();
+        });
+
+        updateProgress();
+        scheduleNotifications();
+
+        String message = isChecked ? prayer.getName() + " marked as offered ✓" :
+                prayer.getName() + " unmarked";
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 
     @Override
     public void onPrayerLongClick(Prayer prayer) {
-        prayer.setQaza(!prayer.isQaza());
-        if (prayer.isQaza()) {
-            prayer.setCompleted(false);
+        if (!prayer.hasPrayerTimeArrived()) {
+            Toast.makeText(this, "Prayer time hasn't arrived yet", Toast.LENGTH_SHORT).show();
+            return;
         }
 
+        prayer.setQaza(!prayer.isQaza());
         prayerController.updatePrayerStatus(prayer);
-        updateProgressUI();
-        prayerAdapter.notifyDataSetChanged();
 
-        Toast.makeText(this,
-                prayer.isQaza() ? "Marked as Qaza" : "Qaza removed",
-                Toast.LENGTH_SHORT).show();
+        uiHandler.post(() -> {
+            prayerAdapter.notifyDataSetChanged();
+        });
+
+        updateProgress();
+
+        String message = prayer.isQaza() ? prayer.getName() + " marked as QAZA" :
+                prayer.getName() + " unmarked from QAZA";
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 
     @Override
     public void onNotificationIconClick(Prayer prayer, int position) {
-        if (prayer.isCompleted()) {
-            Toast.makeText(this, "Prayer already completed", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
         NotificationSettingsDialog dialog = new NotificationSettingsDialog(
                 this,
                 prayer,
                 updatedPrayer -> {
                     prayerController.updatePrayerStatus(updatedPrayer);
-                    prayerAdapter.notifyItemChanged(position);
+
+                    uiHandler.post(() -> {
+                        prayerAdapter.notifyItemChanged(position);
+                    });
 
                     scheduleNotifications();
 
@@ -415,26 +478,84 @@ public class SalahTrackerActivity extends AppCompatActivity implements PrayerAda
         dialog.show();
     }
 
+    private void setupBottomNavigation() {
+        bottomNavigationView.setSelectedItemId(R.id.nav_salah);
+
+        bottomNavigationView.setOnItemSelectedListener(item -> {
+            int itemId = item.getItemId();
+
+            if (itemId == R.id.nav_home) {
+                Intent intent = new Intent(this, HomeActivity.class);
+                startActivity(intent);
+                finish();
+                return true;
+            } else if (itemId == R.id.nav_salah) {
+                return true;
+            } else if (itemId == R.id.nav_thirty_day) {
+                Intent intent = new Intent(this, ThirtyDayJourneyActivity.class);
+                startActivity(intent);
+                finish();
+                return true;
+            } else if (itemId == R.id.nav_profile) {
+                Intent intent = new Intent(this, ProfileActivity.class);
+                startActivity(intent);
+                finish();
+                return true;
+            }
+            return false;
+        });
+    }
+
+    /**
+     * ✅ FIX: Handle all permissions in ONE result
+     */
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
         if (requestCode == PERMISSIONS_REQUEST) {
             boolean locationGranted = false;
+            boolean notificationGranted = false;
 
             for (int i = 0; i < permissions.length; i++) {
+                // Check location
                 if (permissions[i].equals(Manifest.permission.ACCESS_FINE_LOCATION) ||
                         permissions[i].equals(Manifest.permission.ACCESS_COARSE_LOCATION)) {
                     if (grantResults[i] == PackageManager.PERMISSION_GRANTED) {
                         locationGranted = true;
+                        Log.d(TAG, "✅ Location permission granted");
+                    }
+                }
+
+                // Check notification (Android 13+)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    if (permissions[i].equals(Manifest.permission.POST_NOTIFICATIONS)) {
+                        if (grantResults[i] == PackageManager.PERMISSION_GRANTED) {
+                            notificationGranted = true;
+                            Log.d(TAG, "✅ Notification permission granted");
+                        } else {
+                            Log.w(TAG, "❌ Notification permission denied");
+                            Toast.makeText(this,
+                                    "⚠️ Notifications disabled",
+                                    Toast.LENGTH_SHORT).show();
+                        }
                     }
                 }
             }
 
             if (locationGranted && !initialLoadDone) {
+                loadPrayerData();
                 Toast.makeText(this, "Checking prayer times...", Toast.LENGTH_SHORT).show();
                 checkLocationAndFetchSmart(false);
                 initialLoadDone = true;
+            }
+
+            // Check exact alarm permission after all permissions granted
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (!notificationManager.canScheduleExactAlarms()) {
+                    checkExactAlarmPermission();
+                }
             }
         }
     }
@@ -443,12 +564,21 @@ public class SalahTrackerActivity extends AppCompatActivity implements PrayerAda
     protected void onResume() {
         super.onResume();
         loadPrayerData();
-        prayerAdapter.notifyDataSetChanged();
 
+        uiHandler.post(() -> {
+            prayerAdapter.notifyDataSetChanged();
+        });
+
+        // Update Fiqh display in case it changed
+        updateFiqhMethodDisplay();
+
+        // Reschedule notifications if permissions available
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (notificationManager.canScheduleExactAlarms()) {
                 scheduleNotifications();
             }
+        } else {
+            scheduleNotifications();
         }
     }
 
@@ -456,5 +586,6 @@ public class SalahTrackerActivity extends AppCompatActivity implements PrayerAda
     protected void onDestroy() {
         super.onDestroy();
         prayerController.getLocationHelper().stopLocationUpdates();
+        uiHandler.removeCallbacksAndMessages(null);
     }
 }

@@ -3,6 +3,7 @@ package com.example.sirralquran.controllers;
 import android.content.Context;
 import android.util.Log;
 import com.example.sirralquran.database.SalahDatabaseHelper;
+import com.example.sirralquran.dialogs.FiqhSelectionDialog;
 import com.example.sirralquran.models.Prayer;
 import com.example.sirralquran.utils.LocationHelper;
 import com.example.sirralquran.utils.PrayerTimesHelper;
@@ -10,10 +11,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * SMART PrayerController with location-aware caching
- * - Checks if location changed before making API calls
- * - Uses cached prayer times when location hasn't changed
- * - Only fetches from API when necessary
+ * FIXED PrayerController - No variable access errors
+ * BUG FIXES:
+ * 1. Uses updatePrayerTimesOnly() instead of savePrayer() on refresh
+ * 2. Uses updatePrayerStatus() for user status changes only
+ * 3. Passes Fiqh method to database for caching
+ * 4. Fixed forceRefresh variable access error
  */
 public class PrayerController {
 
@@ -62,7 +65,9 @@ public class PrayerController {
     }
 
     /**
-     * SMART: Fetch prayer times from API (with location change detection)
+     * ✅ FIXED: Fetch prayer times with calculation method
+     * Uses updatePrayerTimesOnly to PRESERVE user data
+     * Fixed forceRefresh variable access error
      */
     public void fetchPrayerTimesFromAPI(OnPrayerTimesLoadedListener listener, boolean forceRefresh) {
         // Check location permission
@@ -71,6 +76,10 @@ public class PrayerController {
             listener.onError("Location permission required");
             return;
         }
+
+        // Get saved calculation method
+        final int calculationMethod = FiqhSelectionDialog.getSavedMethod(context);
+        Log.d(TAG, "📊 Using calculation method: " + calculationMethod);
 
         // Get current location
         locationHelper.getCurrentLocation(new LocationHelper.OnLocationReceivedListener() {
@@ -81,12 +90,24 @@ public class PrayerController {
                 // Check if location changed significantly
                 boolean locationChanged = locationHelper.hasLocationChangedSignificantly(latitude, longitude);
 
-                if (!forceRefresh && !locationChanged) {
-                    // Location hasn't changed, check if we have today's data
+                // Check if Fiqh method changed
+                int storedMethod = dbHelper.getStoredFiqhMethod();
+                boolean methodChanged = (storedMethod != calculationMethod);
+
+                // ✅ FIX: Use local variable instead of modifying parameter
+                boolean shouldForceRefresh = forceRefresh;
+
+                if (methodChanged) {
+                    Log.d(TAG, "📖 Fiqh method changed: " + storedMethod + " → " + calculationMethod);
+                    shouldForceRefresh = true;  // Force refresh if method changed
+                }
+
+                if (!shouldForceRefresh && !locationChanged && !methodChanged) {
+                    // Location AND method unchanged, check if we have today's data
                     List<Prayer> cachedPrayers = dbHelper.getTodayPrayers();
 
                     if (!cachedPrayers.isEmpty()) {
-                        Log.d(TAG, "✅ Using cached prayer times (location unchanged)");
+                        Log.d(TAG, "✅ Using cached prayer times (no changes)");
                         listener.onSuccess(cachedPrayers);
                         return;
                     }
@@ -94,12 +115,14 @@ public class PrayerController {
 
                 if (locationChanged) {
                     Log.d(TAG, "📍 Location changed significantly, fetching new prayer times");
+                } else if (methodChanged) {
+                    Log.d(TAG, "📖 Method changed, fetching new prayer times");
                 } else {
                     Log.d(TAG, "🔄 Force refresh requested");
                 }
 
-                // Fetch prayer times for this location
-                prayerTimesHelper.fetchPrayerTimes(latitude, longitude,
+                // Fetch prayer times with selected calculation method
+                prayerTimesHelper.fetchPrayerTimes(latitude, longitude, calculationMethod,
                         new PrayerTimesHelper.OnPrayerTimesFetchedListener() {
                             @Override
                             public void onSuccess(List<Prayer> prayers) {
@@ -108,12 +131,14 @@ public class PrayerController {
                                 // Update cached location
                                 locationHelper.updateCachedLocation(latitude, longitude);
 
-                                // Save to database
-                                for (Prayer prayer : prayers) {
-                                    dbHelper.savePrayer(prayer);
-                                }
+                                // ✅ CRITICAL FIX: Use updatePrayerTimesOnly to preserve user data
+                                dbHelper.updatePrayerTimesOnly(prayers, calculationMethod);
 
-                                listener.onSuccess(prayers);
+                                Log.d(TAG, "✅ Prayer times updated (user data preserved)");
+
+                                // Reload from database to get merged data
+                                List<Prayer> mergedPrayers = dbHelper.getTodayPrayers();
+                                listener.onSuccess(mergedPrayers);
                             }
 
                             @Override
@@ -132,14 +157,16 @@ public class PrayerController {
                 double[] cachedLocation = locationHelper.getCachedLocation();
                 Log.d(TAG, "📍 Using cached location: " + cachedLocation[0] + ", " + cachedLocation[1]);
 
-                prayerTimesHelper.fetchPrayerTimes(cachedLocation[0], cachedLocation[1],
+                prayerTimesHelper.fetchPrayerTimes(cachedLocation[0], cachedLocation[1], calculationMethod,
                         new PrayerTimesHelper.OnPrayerTimesFetchedListener() {
                             @Override
                             public void onSuccess(List<Prayer> prayers) {
-                                for (Prayer prayer : prayers) {
-                                    dbHelper.savePrayer(prayer);
-                                }
-                                listener.onSuccess(prayers);
+                                // ✅ CRITICAL FIX: Use updatePrayerTimesOnly
+                                dbHelper.updatePrayerTimesOnly(prayers, calculationMethod);
+
+                                // Reload merged data
+                                List<Prayer> mergedPrayers = dbHelper.getTodayPrayers();
+                                listener.onSuccess(mergedPrayers);
                             }
 
                             @Override
@@ -152,10 +179,11 @@ public class PrayerController {
     }
 
     /**
-     * Update prayer status (completed/qaza)
+     * ✅ CRITICAL FIX: Update prayer status (completed/qaza/notification settings)
+     * Uses updatePrayerStatus() to update ONLY user status, not prayer times
      */
     public void updatePrayerStatus(Prayer prayer) {
-        dbHelper.savePrayer(prayer);
+        dbHelper.updatePrayerStatus(prayer);  // ✅ FIX: Use updatePrayerStatus instead of savePrayer
         Log.d(TAG, "✅ Prayer status updated: " + prayer.getName());
     }
 

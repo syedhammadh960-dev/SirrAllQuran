@@ -2,6 +2,8 @@ package com.example.sirralquran.views;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -20,9 +22,19 @@ import com.example.sirralquran.models.DayLesson;
 import com.google.android.material.button.MaterialButton;
 
 /**
- * FIXED DayContentActivity - Removed LinearLayout casting error
+ * ✅ FIXED: DayContentActivity with real-time next day unlock
+ *
+ * NEW FEATURES:
+ * 1. Auto-refresh every 30 seconds
+ * 2. "Next Day" button unlocks automatically when conditions met
+ * 3. Shows toast when next day unlocks
  */
 public class DayContentActivity extends AppCompatActivity {
+
+    private static final String TAG = "DayContent";
+
+    // ✅ NEW: Auto-refresh interval
+    private static final long REFRESH_INTERVAL_MS = 30 * 1000; // 30 seconds
 
     private ImageView backButton;
     private ImageView infoButton;
@@ -37,11 +49,15 @@ public class DayContentActivity extends AppCompatActivity {
     private MaterialButton previousDayButton;
     private Button nextDayButton;
     private ProgressBar loadingProgress;
-    private ScrollView contentLayout; // FIXED: Changed from LinearLayout to ScrollView
+    private ScrollView contentLayout;
 
     private LessonController lessonController;
     private int currentDayNumber;
     private DayLesson currentLesson;
+
+    // ✅ NEW: Handler for auto-refresh
+    private Handler refreshHandler;
+    private Runnable refreshRunnable;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,6 +68,10 @@ public class DayContentActivity extends AppCompatActivity {
 
         initializeViews();
         lessonController = new LessonController(this);
+
+        // ✅ NEW: Setup auto-refresh
+        setupAutoRefresh();
+
         loadLessonData();
         setupClickListeners();
         setupBackPressHandler();
@@ -70,15 +90,63 @@ public class DayContentActivity extends AppCompatActivity {
         playButton = findViewById(R.id.playButton);
         previousDayButton = findViewById(R.id.previousDayButton);
         nextDayButton = findViewById(R.id.nextDayButton);
-
-        // FIXED: Changed to ScrollView (not LinearLayout)
         loadingProgress = findViewById(R.id.loadingProgress);
         contentLayout = findViewById(R.id.contentLayout);
     }
 
     /**
-     * Load lesson data from Firebase
+     * ✅ NEW: Setup auto-refresh for next day unlock
      */
+    private void setupAutoRefresh() {
+        refreshHandler = new Handler(Looper.getMainLooper());
+
+        refreshRunnable = new Runnable() {
+            @Override
+            public void run() {
+                // Update next day button status
+                updateNextDayButtonStatus();
+
+                // Schedule next refresh
+                refreshHandler.postDelayed(this, REFRESH_INTERVAL_MS);
+            }
+        };
+    }
+
+    /**
+     * ✅ NEW: Update next day button unlock status in real-time
+     */
+    private void updateNextDayButtonStatus() {
+        if (currentDayNumber >= 30) {
+            return; // Day 30, no next day
+        }
+
+        int nextDay = currentDayNumber + 1;
+
+        // Get current unlock status
+        boolean wasLocked = !nextDayButton.isEnabled();
+        boolean isNowUnlocked = lessonController.canAccessDay(nextDay);
+
+        // Check if status changed from locked to unlocked
+        if (wasLocked && isNowUnlocked) {
+            android.util.Log.d(TAG, "🔓 Day " + nextDay + " just unlocked!");
+
+            // Update button
+            nextDayButton.setEnabled(true);
+            nextDayButton.setAlpha(1.0f);
+            nextDayButton.setText("Next Day");
+
+            // Show toast
+            Toast.makeText(this,
+                    "✅ Day " + nextDay + " is now unlocked!",
+                    Toast.LENGTH_SHORT).show();
+        } else if (!wasLocked && !isNowUnlocked) {
+            // Locked again (shouldn't happen, but just in case)
+            nextDayButton.setEnabled(false);
+            nextDayButton.setAlpha(0.5f);
+            nextDayButton.setText("🔒 Locked");
+        }
+    }
+
     private void loadLessonData() {
         showLoading(true);
 
@@ -95,7 +163,6 @@ public class DayContentActivity extends AppCompatActivity {
                 Toast.makeText(DayContentActivity.this, error, Toast.LENGTH_LONG).show();
                 showLoading(false);
 
-                // If day is locked, show time remaining and go back
                 if (error.contains("locked")) {
                     new android.os.Handler().postDelayed(() -> finish(), 2000);
                 }
@@ -105,30 +172,15 @@ public class DayContentActivity extends AppCompatActivity {
         updateNavigationButtons();
     }
 
-    /**
-     * Display lesson content in UI
-     */
     private void displayLesson(DayLesson lesson) {
-        // Set header info
         dayAndSurahText.setText("Day " + currentDayNumber + " • " + lesson.getSurahInfo());
         lessonTitleText.setText(lesson.getTitle());
-
-        // Set theme
         themeDescriptionText.setText(lesson.getTheme());
-
-        // Set scholar quote
         scholarQuoteText.setText(lesson.getScholarQuote());
-
-        // Set tafseer/explanation
         tafseerText.setText(lesson.getTafseer());
-
-        // Set completion checkbox state
         completeCheckbox.setChecked(lesson.isCompleted());
     }
 
-    /**
-     * Show/hide loading indicator
-     */
     private void showLoading(boolean show) {
         if (loadingProgress != null) {
             loadingProgress.setVisibility(show ? View.VISIBLE : View.GONE);
@@ -218,7 +270,21 @@ public class DayContentActivity extends AppCompatActivity {
             lessonController.markLessonCompleted(currentDayNumber);
             Toast.makeText(this, "Day " + currentDayNumber + " marked as complete! 🎉",
                     Toast.LENGTH_SHORT).show();
+
+            // ✅ IMMEDIATELY update next day button (for catch-up mode)
             updateNavigationButtons();
+
+            // ✅ Check if next day unlocked immediately (catch-up mode)
+            if (currentDayNumber < 30) {
+                new Handler().postDelayed(() -> {
+                    boolean nextDayUnlocked = lessonController.canAccessDay(currentDayNumber + 1);
+                    if (nextDayUnlocked) {
+                        Toast.makeText(this,
+                                "✅ Day " + (currentDayNumber + 1) + " is now unlocked!",
+                                Toast.LENGTH_SHORT).show();
+                    }
+                }, 500); // Small delay to ensure data is saved
+            }
         }
     }
 
@@ -252,7 +318,7 @@ public class DayContentActivity extends AppCompatActivity {
             nextDayButton.setEnabled(false);
             nextDayButton.setAlpha(0.5f);
         } else {
-            // Check if next day is unlocked
+            // ✅ Check if next day is unlocked
             boolean nextDayUnlocked = lessonController.canAccessDay(currentDayNumber + 1);
             nextDayButton.setEnabled(nextDayUnlocked);
             nextDayButton.setAlpha(nextDayUnlocked ? 1.0f : 0.5f);
@@ -269,5 +335,34 @@ public class DayContentActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         loadLessonData();
+
+        // ✅ NEW: Start auto-refresh
+        if (refreshHandler != null && refreshRunnable != null) {
+            refreshHandler.postDelayed(refreshRunnable, REFRESH_INTERVAL_MS);
+            android.util.Log.d(TAG, "🔄 Auto-refresh started");
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        // ✅ NEW: Stop auto-refresh
+        if (refreshHandler != null && refreshRunnable != null) {
+            refreshHandler.removeCallbacks(refreshRunnable);
+            android.util.Log.d(TAG, "⏸️ Auto-refresh paused");
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
+        // ✅ NEW: Clean up handler
+        if (refreshHandler != null && refreshRunnable != null) {
+            refreshHandler.removeCallbacks(refreshRunnable);
+            refreshHandler = null;
+            refreshRunnable = null;
+        }
     }
 }

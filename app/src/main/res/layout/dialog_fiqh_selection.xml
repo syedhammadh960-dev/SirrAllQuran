@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="#FFFFFF">
+
+    <TextView
+        android:id="@+id/dialogTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Select Prayer Calculation Method"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="#1A1A1A"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Choose the calculation method (فرقہ) for prayer times"
+        android:textSize="14sp"
+        android:textColor="#666666"
+        android:layout_marginBottom="20dp" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:maxHeight="300dp">
+
+        <RadioGroup
+            android:id="@+id/fiqhRadioGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <RadioButton
+                android:id="@+id/method0"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Shia Ithna-Ashari (شیعہ اثنا عشری)"
+                android:textSize="16sp"
+                android:padding="12dp" />
+
+            <RadioButton
+                android:id="@+id/method1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Hanafi (کراچی - حنفی) ✓ Default"
+                android:textSize="16sp"
+                android:padding="12dp"
+                android:checked="true" />
+
+            <RadioButton
+                android:id="@+id/method2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="ISNA (North America)"
+                android:textSize="16sp"
+                android:padding="12dp" />
+
+            <RadioButton
+                android:id="@+id/method3"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Muslim World League"
+                android:textSize="16sp"
+                android:padding="12dp" />
+
+            <RadioButton
+                android:id="@+id/method4"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Umm Al-Qura (مکہ)"
+                android:textSize="16sp"
+                android:padding="12dp" />
+
+            <RadioButton
+                android:id="@+id/method5"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Egyptian General Authority"
+                android:textSize="16sp"
+                android:padding="12dp" />
+
+        </RadioGroup>
+    </ScrollView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="20dp">
+
+        <Button
+            android:id="@+id/cancelButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:text="Cancel"
+            android:textColor="#666666"
+            android:backgroundTint="#F0F0F0"
+            style="@style/Widget.MaterialComponents.Button.TextButton" />
+
+        <Button
+            android:id="@+id/selectButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:text="Update Times"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#D4AF37" />
+
+    </LinearLayout>
+
+</LinearLayout>

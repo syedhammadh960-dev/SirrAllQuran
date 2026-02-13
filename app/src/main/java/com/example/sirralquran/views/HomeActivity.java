@@ -410,6 +410,11 @@ public class HomeActivity extends BaseActivity {
                 overridePendingTransition(0, 0);
                 finish();
                 return true;
+            } else if (itemId == R.id.nav_ashra) {
+                startActivity(new Intent(HomeActivity.this, RamadanAshraActivity.class));
+                overridePendingTransition(0, 0);
+                finish();
+                return true;
             }
 
             return false;
